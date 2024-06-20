@@ -1,4 +1,5 @@
 #include "input_reader.h"
+#include "iostream"
 #include <algorithm>
 #include <cassert>
 #include <iterator>
@@ -156,6 +157,22 @@ void parse::InputReader::ApplyCommands([[maybe_unused]] tc::TransportCatalogue& 
             auto parameters = parse::Route(c.description);
 
             bus.stops_.assign(parameters.first.begin(), parameters.first.end());
+
+            for (auto stop : bus.stops_)
+            {
+                auto temp = catalogue.GetStop(stop);
+                if (temp != nullptr)
+                {
+                    bus.stops_ptr_.push_back(temp); 
+                }
+
+                else
+                {
+                    std::cout << "Current stop is not exist yet." << std::endl;
+                    continue;;
+                }
+            }
+
             bus.is_circle_ = parameters.second;
 
             catalogue.AddBus(bus);

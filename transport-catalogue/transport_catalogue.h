@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include "geo.h"
 #include <deque>
 #include <string>
@@ -10,23 +11,6 @@
 
 namespace tc
 {
-    struct Bus 
-    { 
-        std::string name_;
-        std::deque<std::string> stops_;
-        bool is_circle_;
-
-        auto AsTuple() const 
-        {
-            return tie(name_, stops_, is_circle_);
-        }
-
-        bool operator==(const Bus& other) const 
-        {
-            return AsTuple() == other.AsTuple();
-        }
-    };
-
     struct Stop 
     {    
         std::string name_;
@@ -41,6 +25,41 @@ namespace tc
         {
             return AsTuple() == other.AsTuple();
         }
+
+        bool operator!=(const Stop& other) const 
+        {
+            return (AsTuple() != other.AsTuple());
+        }
+    };
+
+    struct Bus 
+    { 
+        std::string name_;
+        std::deque<std::string> stops_;
+        std::deque<const Stop*> stops_ptr_;
+        bool is_circle_;
+
+        auto AsTuple() const 
+        {
+            return tie(name_, stops_, is_circle_);
+        }
+
+        bool operator==(const Bus& other) const 
+        {
+            return AsTuple() == other.AsTuple();
+        }
+
+        bool operator!=(const Bus& other) const 
+        {
+            return (AsTuple() != other.AsTuple());
+        }
+    };
+
+    struct Info 
+    {
+        size_t total_stops = 0;
+        size_t unique_stops = 0;
+        double route_length = 0.0;
     };
 
     struct Hasher
@@ -75,7 +94,8 @@ namespace tc
         HashedStops GetUniqStops(std::string_view bus_name);
         // Рассчет длины маршрута автобуса
         double GetRouteLength(const Bus* bus);
-        std::set<std::string> GetBusesByStop(std::string_view stop_name);
+        std::set<std::string_view> GetBusesByStop(std::string_view stop_name);
+        Info GetInfo(const Bus* bus);
 
         private:
         // База автобусов
