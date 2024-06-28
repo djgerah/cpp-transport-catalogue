@@ -1,13 +1,14 @@
 #pragma once
 
-#include <algorithm>
 #include "geo.h"
+#include <algorithm>
 #include <deque>
+#include <set>
 #include <string>
 #include <string_view>
-#include <set>
 #include <unordered_set>
 #include <unordered_map>
+#include <vector>
 
 namespace tc
 {
@@ -35,13 +36,12 @@ namespace tc
     struct Bus 
     { 
         std::string name_;
-        std::deque<std::string> stops_;
         std::deque<const Stop*> stops_ptr_;
         bool is_circle_;
 
         auto AsTuple() const 
         {
-            return tie(name_, stops_, is_circle_);
+            return tie(name_, stops_ptr_, is_circle_);
         }
 
         bool operator==(const Bus& other) const 
@@ -66,12 +66,12 @@ namespace tc
     {
         size_t operator()(const Stop* stop) const 
         {
-            return ((hasher(stop->coordinates.lat) * 37) + (hasher(stop->coordinates.lng) * (37 * 37)));
+            return ((hasher_db(stop->coordinates.lat) * 37) + (hasher_db(stop->coordinates.lng) * (37 * 37)));
         }
 
         private:
 
-        std::hash<double> hasher;
+        std::hash<double> hasher_db;
     };
 
     // Реализуйте класс самостоятельно
@@ -83,9 +83,9 @@ namespace tc
 
         public:   
         // добавление автобуса в базу
-        void AddBus(Bus& bus);
+        void AddBus(const std::string& bus_name, std::vector<std::string_view>& stops, bool is_circle);
         // добавление остановки в базу
-        void AddStop(Stop& stop);
+        void AddStop(const std::string& stop_name, geo::Coordinates& coordinates);
         // поиск автобуса по номеру
         const Bus* GetBus(std::string_view stop);
         // поиск остановки по названию
@@ -94,7 +94,9 @@ namespace tc
         HashedStops GetUniqStops(std::string_view bus_name);
         // Рассчет длины маршрута автобуса
         double GetRouteLength(const Bus* bus);
+        // Получение списка автобусов по названию остановки
         std::set<std::string_view> GetBusesByStop(std::string_view stop_name);
+        // Получение информации о маршруте
         Info GetInfo(const Bus* bus);
 
         private:

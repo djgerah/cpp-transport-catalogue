@@ -1,10 +1,17 @@
 #include "transport_catalogue.h"
 
 // Значение передается по lvalue ссылке, которая запрещает перемещение
-void tc::TransportCatalogue::AddBus(Bus& bus) 
+void tc::TransportCatalogue::AddBus(const std::string& bus_name, std::vector<std::string_view>& stops, bool is_circle) 
 {
-    buses_.push_back(bus);
-    
+    std::deque<const Stop*> temp;
+
+    for (auto stop : stops)
+    {
+        temp.push_back(GetStop(stop));
+    }
+
+    buses_.push_back({ bus_name, temp, is_circle });
+
     busname_to_bus[buses_.back().name_] = &buses_.back();
 }
 
@@ -23,9 +30,9 @@ const tc::Bus* tc::TransportCatalogue::GetBus(std::string_view bus_name)
     }
 }
 
-void tc::TransportCatalogue::AddStop(Stop& stop) 
+void tc::TransportCatalogue::AddStop(const std::string& stop_name, geo::Coordinates& coordinates) 
 {
-    stops_.push_back(stop);
+    stops_.push_back({ stop_name, coordinates });
 
     stopname_to_stop[stops_.back().name_] = &stops_.back();
 }
@@ -68,11 +75,11 @@ std::unordered_set<const tc::Stop*, tc::Hasher> tc::TransportCatalogue::GetUniqS
 {
     std::unordered_set<const Stop*, Hasher> unique_stops;
     
-    for (const auto& stop : busname_to_bus.at(bus_name)->stops_) 
+    for (const auto& stop : busname_to_bus.at(bus_name)->stops_ptr_) 
     {
-        if (stopname_to_stop.count(stop))
+        if (stopname_to_stop.count(stop->name_))
         {
-            unique_stops.insert(stopname_to_stop.at(stop));
+            unique_stops.insert(stopname_to_stop.at(stop->name_));
         }
     }
     
@@ -85,7 +92,7 @@ double tc::TransportCatalogue::GetRouteLength(const Bus* bus)
 
         if  (bus->is_circle_) 
         {
-            for (auto i = 1; i < bus->stops_.size(); ++i)
+            for (auto i = 1; i < bus->stops_ptr_.size(); ++i)
             {
                 route_length += geo::ComputeDistance(bus->stops_ptr_[i - 1]->coordinates, bus->stops_ptr_[i]->coordinates);    
             }
@@ -93,7 +100,7 @@ double tc::TransportCatalogue::GetRouteLength(const Bus* bus)
         
         else
         {
-            for (auto i = bus->stops_.size() - 1; i > 0; --i)
+            for (auto i = bus->stops_ptr_.size() - 1; i > 0; --i)
             {
                 route_length += geo::ComputeDistance(bus->stops_ptr_[i]->coordinates, bus->stops_ptr_[i - 1]->coordinates);    
             }   

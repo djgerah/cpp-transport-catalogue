@@ -1,5 +1,4 @@
 #include "input_reader.h"
-#include "iostream"
 #include <algorithm>
 #include <cassert>
 #include <iterator>
@@ -113,9 +112,10 @@ CommandDescription parse::TheCommandDescription(std::string_view line)
         return {};
     }
 
-    return { std::string(line.substr(0, space_pos)),                        // Параметры маршрута или кординаты
-            std::string(line.substr(not_space, colon_pos - not_space)),     // Номер маршрута или название остановки
-            std::string(line.substr(colon_pos + 1)) };                      // Название команды (Stop или Bus)
+    return  { std::string(line.substr(0, space_pos)),                           // Параметры маршрута или кординаты
+              std::string(line.substr(not_space, colon_pos - not_space)),       // Номер маршрута или название остановки
+              std::string(line.substr(colon_pos + 1))                            // Название команды (Stop или Bus)
+            };                     
 }
 
 
@@ -132,50 +132,27 @@ void parse::InputReader::ParseLine(std::string_view line)
 void parse::InputReader::ApplyCommands([[maybe_unused]] tc::TransportCatalogue& catalogue) const 
 {
     // Реализуйте метод самостоятельно
-    tc::Bus bus;
-    tc::Stop stop;
-
     for (auto& c : commands_)
     {  
         // command: автобус или остановка 
         if (c.command == "Stop")    
         {
             // id: номер автобуса или название остановки
-            stop.name_ = c.id;
             // description: маршрут или координаты
-            stop.coordinates = parse::Coordinates(c.description);
-
-            catalogue.AddStop(stop);
+            auto coordinates = parse::Coordinates(c.description);
+            catalogue.AddStop(c.id, coordinates);
         }
+    }
 
+    for (auto& c : commands_)
+    {  
         // command: автобус или остановка
-        else if (c.command == "Bus")
+        if (c.command == "Bus")
         {
             // id: номер автобуса или название остановки
-            bus.name_ = c.id;
-            // description: маршрут или координаты    
+            // description: маршрут или координаты
             auto parameters = parse::Route(c.description);
-
-            bus.stops_.assign(parameters.first.begin(), parameters.first.end());
-
-            for (auto stop : bus.stops_)
-            {
-                auto temp = catalogue.GetStop(stop);
-                if (temp != nullptr)
-                {
-                    bus.stops_ptr_.push_back(temp); 
-                }
-
-                else
-                {
-                    std::cout << "Current stop is not exist yet." << std::endl;
-                    continue;;
-                }
-            }
-
-            bus.is_circle_ = parameters.second;
-
-            catalogue.AddBus(bus);
+            catalogue.AddBus(c.id, parameters.first, parameters.second);
         }
     }
 }
