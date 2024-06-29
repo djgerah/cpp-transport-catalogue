@@ -1,11 +1,10 @@
 #pragma once
 
 #include "geo.h"
-#include <algorithm>
 #include <deque>
-#include <set>
 #include <string>
 #include <string_view>
+#include <set>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
@@ -16,43 +15,13 @@ namespace tc
     {    
         std::string name_;
         geo::Coordinates coordinates;
-        
-        auto AsTuple() const 
-        {
-            return tie(name_, coordinates.lat, coordinates.lng);
-        }
-
-        bool operator==(const Stop& other) const 
-        {
-            return AsTuple() == other.AsTuple();
-        }
-
-        bool operator!=(const Stop& other) const 
-        {
-            return (AsTuple() != other.AsTuple());
-        }
     };
 
     struct Bus 
     { 
         std::string name_;
-        std::deque<const Stop*> stops_ptr_;
+        std::deque<const Stop*> stops_;
         bool is_circle_;
-
-        auto AsTuple() const 
-        {
-            return tie(name_, stops_ptr_, is_circle_);
-        }
-
-        bool operator==(const Bus& other) const 
-        {
-            return AsTuple() == other.AsTuple();
-        }
-
-        bool operator!=(const Bus& other) const 
-        {
-            return (AsTuple() != other.AsTuple());
-        }
     };
 
     struct Info 
@@ -60,18 +29,28 @@ namespace tc
         size_t total_stops = 0;
         size_t unique_stops = 0;
         double route_length = 0.0;
+        double curvature = 0.0;
     };
 
     struct Hasher
     {
-        size_t operator()(const Stop* stop) const 
+        size_t operator()(const Stop* stop) const noexcept  
         {
             return ((hasher_db(stop->coordinates.lat) * 37) + (hasher_db(stop->coordinates.lng) * (37 * 37)));
         }
 
+        size_t operator()(const std::pair<const Stop*, const Stop*> pair_stops) const noexcept 
+        {
+            auto hash_1 = static_cast<const void*>(pair_stops.first);
+            auto hash_2 = static_cast<const void*>(pair_stops.second);
+
+            return (hasher_ptr(hash_1) * 37) + (hasher_ptr(hash_2) * (37 * 37));
+        }    
+
         private:
 
         std::hash<double> hasher_db;
+        std::hash<const void*> hasher_ptr;
     };
 
     // Реализуйте класс самостоятельно
@@ -90,13 +69,17 @@ namespace tc
         const Bus* GetBus(std::string_view stop);
         // поиск остановки по названию
         const Stop* GetStop(std::string_view stop);
+        // поиск автобусов по названию остановки
+        std::set<std::string_view> GetBusesByStop(std::string_view stop_name);
         // получение количества уникальных остановок автобуса
         HashedStops GetUniqStops(std::string_view bus_name);
-        // Рассчет длины маршрута автобуса
-        double GetRouteLength(const Bus* bus);
-        // Получение списка автобусов по названию остановки
-        std::set<std::string_view> GetBusesByStop(std::string_view stop_name);
-        // Получение информации о маршруте
+        // устанавливает расстояние между парой остановок
+        void SetDistance(std::string_view from, std::string_view to, int dist);
+        // рассчет расстояния между остановками
+        int GetDistance(const Stop* from, const Stop* to);
+        // рассчет длины маршрута автобуса
+        std::pair<int, double> GetRouteLength(const Bus* bus);
+        // получение полной информации о маршруте
         Info GetInfo(const Bus* bus);
 
         private:
@@ -106,5 +89,6 @@ namespace tc
         // База остановок
         std::deque<Stop> stops_;
         StopMap stopname_to_stop;
+        std::unordered_map<std::pair<const Stop*, const Stop*>, int, Hasher> distance_;
     };
 } // namespace tc

@@ -1,27 +1,13 @@
 #include "input_reader.h"
 #include <algorithm>
-#include <cassert>
-#include <iterator>
 
 /**
  * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
  */
-geo::Coordinates parse::Coordinates(std::string_view str) 
+geo::Coordinates parse::Coordinates(std::string_view latitude, std::string_view longitude) 
 {
-    static const double nan = std::nan("");
-
-    auto not_space = str.find_first_not_of(' ');
-    auto comma = str.find(',');
-
-    if (comma == str.npos) 
-    {
-        return {nan, nan};
-    }
-
-    auto not_space2 = str.find_first_not_of(' ', comma + 1);
-
-    double lat = std::stod(std::string(str.substr(not_space, comma - not_space)));
-    double lng = std::stod(std::string(str.substr(not_space2)));
+    double lat = std::stod(std::string(latitude));
+    double lng = std::stod(std::string(longitude));
 
     return {lat, lng};
 }
@@ -89,7 +75,31 @@ std::pair<std::vector<std::string_view>, bool> parse::Route(std::string_view rou
     return std::make_pair(results, true);
 }
 
-CommandDescription parse::TheCommandDescription(std::string_view line) 
+/*
+ * Парсит строку вида "3900m to Marushkino", возвращает название остановки и расстояние до этой остановки в метрах
+ */
+std::pair<std::string_view, int> parse::Distance(std::string_view line) 
+{
+    using namespace std::string_literals;
+    
+    auto to_pos = line.find("to"s);
+
+    if (to_pos == std::string_view::npos) 
+    {
+        return {};
+    }
+
+    auto m_pos = line.find('m');
+
+    if (m_pos >= to_pos) 
+    {
+        return {};
+    }
+    
+    return {line.substr(to_pos + 3), std::stoi(std::string(line.substr(0, m_pos)))};
+}
+
+reader::CommandDescription parse::Description(std::string_view line) 
 {
     auto colon_pos = line.find(':');
 
@@ -112,16 +122,19 @@ CommandDescription parse::TheCommandDescription(std::string_view line)
         return {};
     }
 
-    return  { std::string(line.substr(0, space_pos)),                           // Параметры маршрута или кординаты
-              std::string(line.substr(not_space, colon_pos - not_space)),       // Номер маршрута или название остановки
-              std::string(line.substr(colon_pos + 1))                            // Название команды (Stop или Bus)
-            };                     
+    return  { 
+              std::string(line.substr(0, space_pos)),                         // Параметры маршрута или кординаты
+              std::string(line.substr(not_space, colon_pos - not_space)),     // Номер маршрута или название остановки
+              std::string(line.substr(colon_pos + 1))                         // Название команды (Stop или Bus)
+            };                      
 }
 
-
-void parse::InputReader::ParseLine(std::string_view line) 
+/*
+ * Парсит строку запроса, заполняет структуру типа CommandDescription
+ */
+void reader::InputReader::ParseLine(std::string_view line) 
 {
-    auto command_description = parse::TheCommandDescription(line);
+    auto command_description = parse::Description(line);
     
     if (command_description) 
     {
@@ -129,23 +142,48 @@ void parse::InputReader::ParseLine(std::string_view line)
     }
 }
 
-void parse::InputReader::ApplyCommands([[maybe_unused]] tc::TransportCatalogue& catalogue) const 
+/*
+ * Обрабатывает поля CommandDescription
+ */
+void reader::InputReader::ApplyCommands([[maybe_unused]] tc::TransportCatalogue& catalogue) const 
 {
     // Реализуйте метод самостоятельно
-    for (auto& c : commands_)
-    {  
+    // [stop.id] = { координаты (latitude и longitude), следующая остановка, расстояние до неё };
+    std::unordered_map<std::string_view, std::vector<std::string_view>> route_descriptions;
+
+    for (const auto& c: commands_) 
+    {
         // command: автобус или остановка 
-        if (c.command == "Stop")    
+        if (c.command == "Stop") 
         {
             // id: номер автобуса или название остановки
             // description: маршрут или координаты
-            auto coordinates = parse::Coordinates(c.description);
-            catalogue.AddStop(c.id, coordinates);
+            route_descriptions[c.id] = parse::Split(c.description, ',');
+
+            if (!route_descriptions[c.id].empty()) 
+            {
+                auto parameters = parse::Coordinates(route_descriptions[c.id][0], route_descriptions[c.id][1]); // <- latitude и longitude
+                catalogue.AddStop(c.id, parameters);
+            }
         }
     }
+    
+    for (const auto& c: commands_) 
+    {
+        // command: автобус или остановка 
+        if (c.command == "Stop") 
+        {
+            // Если кроме latitude и longitude, description содержит информацию о расстоянии до других остановок
+            for (int i = 2; i < route_descriptions[c.id].size(); ++i) 
+            {
+                std::pair<std::string_view, int> distance = parse::Distance(route_descriptions[c.id][i]);
+                catalogue.SetDistance(c.id, distance.first, distance.second);
+            }
+        }  
+    }
 
-    for (auto& c : commands_)
-    {  
+    for (const auto& c: commands_) 
+    {
         // command: автобус или остановка
         if (c.command == "Bus")
         {

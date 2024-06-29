@@ -13,7 +13,7 @@ int main()
     cin >> base_request_count >> ws;
 
     {
-        parse::InputReader reader;
+        reader::InputReader reader;
 
         for (int i = 0; i < base_request_count; ++i) 
         {
@@ -31,7 +31,7 @@ int main()
     {
         string line;
         getline(cin, line);
-        ParseAndPrintStat(catalogue, line, cout);
+        print::GeneralStat(catalogue, line, cout);
     }
     
     return 0;

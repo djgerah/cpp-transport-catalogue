@@ -1,121 +1,154 @@
 #include "transport_catalogue.h"
 
-// Значение передается по lvalue ссылке, которая запрещает перемещение
-void tc::TransportCatalogue::AddBus(const std::string& bus_name, std::vector<std::string_view>& stops, bool is_circle) 
+namespace tc
 {
-    std::deque<const Stop*> temp;
-
-    for (auto stop : stops)
+    // Значение передается по lvalue ссылке, которая запрещает перемещение
+    void TransportCatalogue::AddBus(const std::string& bus_name, std::vector<std::string_view>& stops, bool is_circle) 
     {
-        temp.push_back(GetStop(stop));
-    }
+        std::deque<const Stop*> temp;
 
-    buses_.push_back({ bus_name, temp, is_circle });
-
-    busname_to_bus[buses_.back().name_] = &buses_.back();
-}
-
-const tc::Bus* tc::TransportCatalogue::GetBus(std::string_view bus_name) 
-{   
-    // return busname_to_bus.count(bus_name) ? busname_to_bus.at(bus_name) : nullptr;
-
-    if (busname_to_bus.find(bus_name) == busname_to_bus.end())
-    {
-        return nullptr;
-    }
-
-    else
-    {
-        return busname_to_bus.at(bus_name);
-    }
-}
-
-void tc::TransportCatalogue::AddStop(const std::string& stop_name, geo::Coordinates& coordinates) 
-{
-    stops_.push_back({ stop_name, coordinates });
-
-    stopname_to_stop[stops_.back().name_] = &stops_.back();
-}
-
-const tc::Stop* tc::TransportCatalogue::GetStop(std::string_view stop_name) 
-{   
-    // return stopname_to_stop.count(stop_name) ? stopname_to_stop.at(stop_name) : nullptr;
-
-    if (stopname_to_stop.find(stop_name) == stopname_to_stop.end())
-    {
-        return nullptr;
-    }
-
-    else
-    {
-        return stopname_to_stop.at(stop_name);
-    }
-}
-
-// Метод для получения списка автобусов по остановке.
-std::set<std::string_view> tc::TransportCatalogue::GetBusesByStop(std::string_view stop_name)
-{
-    std::set<std::string_view> buses_by_stop;
-
-    for (const auto& bus : buses_)
-    {
-        for (const auto& stop : bus.stops_ptr_)
+        for (auto stop : stops)
         {
-            if (stop->name_ == stop_name)
+            temp.push_back(GetStop(stop));
+        }
+
+        buses_.push_back({ bus_name, temp, is_circle });
+
+        busname_to_bus[buses_.back().name_] = &buses_.back();
+    }
+
+    const Bus* TransportCatalogue::GetBus(std::string_view bus_name) 
+    {   
+        if (busname_to_bus.find(bus_name) == busname_to_bus.end())
+        {
+            return nullptr;
+        }
+
+        else
+        {
+            return busname_to_bus.at(bus_name);
+        }
+    }
+
+    void TransportCatalogue::AddStop(const std::string& stop_name, geo::Coordinates& coordinates) 
+    {
+        stops_.push_back({ stop_name, coordinates });
+
+        stopname_to_stop[stops_.back().name_] = &stops_.back();
+    }
+
+    const Stop* TransportCatalogue::GetStop(std::string_view stop_name) 
+    {   
+        if (stopname_to_stop.find(stop_name) == stopname_to_stop.end())
+        {
+            return nullptr;
+        }
+
+        else
+        {
+            return stopname_to_stop.at(stop_name);
+        }
+    }  
+
+    // Метод для получения списка автобусов по остановке.
+    std::set<std::string_view> TransportCatalogue::GetBusesByStop(std::string_view stop_name)
+    {
+        std::set<std::string_view> buses_by_stop;
+
+        for (const auto& bus : buses_)
+        {
+            for (const auto& stop : bus.stops_)
             {
-                buses_by_stop.insert(bus.name_);
+                if (stop->name_ == stop_name)
+                {
+                    buses_by_stop.insert(bus.name_);
+                }
             }
         }
+
+        return buses_by_stop;
     }
 
-    return buses_by_stop;
-}
-
-std::unordered_set<const tc::Stop*, tc::Hasher> tc::TransportCatalogue::GetUniqStops(std::string_view bus_name)
-{
-    std::unordered_set<const Stop*, Hasher> unique_stops;
-    
-    for (const auto& stop : busname_to_bus.at(bus_name)->stops_ptr_) 
+    std::unordered_set<const Stop*, Hasher> TransportCatalogue::GetUniqStops(std::string_view bus_name)
     {
-        if (stopname_to_stop.count(stop->name_))
+        std::unordered_set<const Stop*, Hasher> unique_stops;
+        
+        for (const auto& stop : busname_to_bus.at(bus_name)->stops_) 
         {
-            unique_stops.insert(stopname_to_stop.at(stop->name_));
-        }
-    }
-    
-    return unique_stops;
-}
-
-double tc::TransportCatalogue::GetRouteLength(const Bus* bus) 
-{
-        double route_length = 0.0;
-
-        if  (bus->is_circle_) 
-        {
-            for (auto i = 1; i < bus->stops_ptr_.size(); ++i)
+            if (stopname_to_stop.count(stop->name_))
             {
-                route_length += geo::ComputeDistance(bus->stops_ptr_[i - 1]->coordinates, bus->stops_ptr_[i]->coordinates);    
+                unique_stops.insert(stopname_to_stop.at(stop->name_));
             }
         }
         
-        else
+        return unique_stops;
+    }
+
+    // Задает дистанции между остановками
+    void TransportCatalogue::SetDistance(std::string_view from, std::string_view to, int dist)
+    {
+        distance_[{ GetStop(from), GetStop(to) }] = dist; 
+    }
+
+    // Возвращает дистанции между остановками
+    int TransportCatalogue::GetDistance(const Stop* from, const Stop* to)
+    {
+        if (distance_.count({ from, to })) 
         {
-            for (auto i = bus->stops_ptr_.size() - 1; i > 0; --i)
-            {
-                route_length += geo::ComputeDistance(bus->stops_ptr_[i]->coordinates, bus->stops_ptr_[i - 1]->coordinates);    
-            }   
+            return distance_.at({ from, to });
         }
 
-    return route_length;
-}
+        else if (distance_.count({ to, from }))
+        {
+            return distance_.at({ to, from });
+        }
+        
+        else 
+        {
+            return 0;
+        }
+    }
 
-tc::Info tc::TransportCatalogue::GetInfo(const tc::Bus* bus)
-{
-    tc::Info info;
-    
-    info.route_length = tc::TransportCatalogue::GetRouteLength(bus);
-    info.total_stops = bus->stops_ptr_.size();
-    info.unique_stops = tc::TransportCatalogue::GetUniqStops(bus->name_).size();
+    std::pair<int, double> TransportCatalogue::GetRouteLength(const Bus* bus) 
+    {
+            int distance = 0;
+            double route_length = 0.0;
+            
+            for (auto i = 1; i < bus->stops_.size(); ++i)
+            {
+                distance += GetDistance(bus->stops_[i - 1], bus->stops_[i]);
+            }
 
-    return info;
-}
+            if  (bus->is_circle_) 
+            {
+                for (auto i = 1; i < bus->stops_.size(); ++i)
+                {
+                    route_length += geo::ComputeDistance(bus->stops_[i - 1]->coordinates, bus->stops_[i]->coordinates);
+                }
+            }
+            
+            else
+            {
+                for (auto i = bus->stops_.size() - 1; i > 0; --i)
+                {
+                    route_length += geo::ComputeDistance(bus->stops_[i]->coordinates, bus->stops_[i - 1]->coordinates);   
+                }   
+            }
+
+        return { distance, route_length };
+    }
+
+    Info TransportCatalogue::GetInfo(const Bus* bus)
+    {
+        Info info;
+        
+        info.total_stops = bus->stops_.size();
+        info.unique_stops = TransportCatalogue::GetUniqStops(bus->name_).size();
+        
+        auto route_length =  TransportCatalogue::GetRouteLength(bus);
+        info.route_length = route_length.first;
+        info.curvature = route_length.first / route_length.second;
+
+        return info;
+    }
+} // namespace tc
