@@ -1,38 +1,22 @@
-#include "input_reader.h"
-#include "stat_reader.h"
 #include <iostream>
-#include <string>
-
-using namespace std;
+#include "json_reader.h"
+#include "request_handler.h"
 
 int main() 
 {
     tc::TransportCatalogue catalogue;
-
-    int base_request_count;
-    cin >> base_request_count >> ws;
-
-    {
-        reader::InputReader reader;
-
-        for (int i = 0; i < base_request_count; ++i) 
-        {
-            string line;
-            getline(cin, line);
-            reader.ParseLine(line);
-        }
-        reader.ApplyCommands(catalogue);
-    }
+    json_reader::JsonReader document(std::cin);
     
-    int stat_request_count;
-    cin >> stat_request_count >> ws;
-
-    for (int i = 0; i < stat_request_count; ++i) 
-    {
-        string line;
-        getline(cin, line);
-        print::GeneralStat(catalogue, line, cout);
-    }
+    document.FillTransportCatalogue(catalogue);
     
+    const json::Node& stat_requests = document.GetStatRequests();
+    const json::Dict& render_settings = document.GetRenderSettings().AsMap();
+    const renderer::MapRenderer& renderer = json_reader::FillRenderSettings(render_settings);
+
+    handler::RequestHandler request_handler(catalogue, renderer);
+    // svg::Document doc = request_handler.RenderMap();
+    // doc.Render(std::cout);
+    request_handler.ProcessRequests(stat_requests);
+
     return 0;
 }
