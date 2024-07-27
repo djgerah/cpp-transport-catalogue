@@ -14,8 +14,6 @@ int main()
     const renderer::MapRenderer& renderer = json_reader::FillRenderSettings(render_settings);
 
     handler::RequestHandler request_handler(catalogue, renderer);
-    // svg::Document doc = request_handler.RenderMap();
-    // doc.Render(std::cout);
     request_handler.ProcessRequests(stat_requests);
 
     return 0;
