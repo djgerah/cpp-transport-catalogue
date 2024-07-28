@@ -2,6 +2,7 @@
 
 #include <deque>
 #include <map>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -43,11 +44,11 @@ namespace tc
 
         public:
             // добавление остановки в базу
-            void AddStop(const std::string& stop_name, const geo::Coordinates& coordinates);
+            void AddStop(Stop stop);
             // поиск остановки по названию
             const Stop* GetStop(std::string_view stop_name) const;
             // добавление автобуса в базу
-            void AddBus(const std::string& bus_number, const std::vector<std::string_view>& stops, bool is_roundtrip);
+            void AddBus(tc::Bus bus);
             // поиск автобуса по номеру
             const Bus* GetBus(std::string_view bus_name) const;
             // получение количества уникальных остановок автобуса
@@ -58,6 +59,10 @@ namespace tc
             void SetDistance(const Stop* from, const Stop* to, const int distance);
             // рассчет расстояния между остановками
             int GetDistance(const Stop* from, const Stop* to) const;
+            // Рассчитывает протяженность маршрута
+            std::pair<int, double> GetRouteLength(const tc::Bus* bus) const;
+            // Возвращает информацию о маршруте (запрос Bus)
+            std::optional<tc::BusStat> GetBusStat(const std::string_view bus_number) const;
 
         private:
             // База остановок

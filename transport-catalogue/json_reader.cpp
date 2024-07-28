@@ -1,3 +1,4 @@
+#include <sstream>
 #include "json_reader.h"
 #include "transport_catalogue.h"
 
@@ -59,56 +60,75 @@ namespace json_reader
     }
 
 
-    std::vector<std::string_view> JsonReader::ParseRoute(const json::Dict& description) 
+    std::vector<const tc::Stop*> JsonReader::ParseRoute(const json::Dict& description, tc::TransportCatalogue& catalogue) 
     {
-        std::vector<std::string_view> results;
+        std::vector<const tc::Stop*> stop_ptr;
         
         for (const auto &stop : description.at("stops"s).AsArray()) 
         {
-            results.push_back(stop.AsString());
+            stop_ptr.push_back(catalogue.GetStop(stop.AsString()));
         }
         
-        return results;
+        return stop_ptr;
+    }
+
+    tc::Stop JsonReader::MakeStop(const json_reader::CommandDescription& command) const
+    {
+        // id: номер автобуса или название остановки
+        // description: маршрут или координаты
+        tc::Stop stop = {command.id, { command.description.at("latitude"s).AsDouble(), command.description.at("longitude"s).AsDouble()}, {} };
+     
+        return stop;
+    }
+
+    void JsonReader::AddDistance(const json_reader::CommandDescription& command, tc::TransportCatalogue& catalogue) const
+    {
+        for (const auto &road_distance : command.description.at("road_distances"s).AsMap()) 
+        {
+            // id: номер автобуса или название остановки
+            // description: маршрут или координаты
+            catalogue.SetDistance(catalogue.GetStop(command.id), catalogue.GetStop(road_distance.first), road_distance.second.AsInt());
+        }
+    }
+
+    tc::Bus JsonReader::MakeBus(const json_reader::CommandDescription& command, tc::TransportCatalogue& catalogue) const
+    {
+        // id: номер автобуса или название остановки
+        // description: маршрут или координаты
+        tc::Bus bus = { command.id, ParseRoute(command.description, catalogue), command.description.at("is_roundtrip"s).AsBool() };
+     
+        return bus;
     }
 
     /*
     * Обрабатывает поля CommandDescription
     */
-    void JsonReader::ApplyCommands(tc::TransportCatalogue &catalogue) const 
+    void JsonReader::ApplyCommands(tc::TransportCatalogue& catalogue) const 
     {    
-        for (const auto& c : commands_) 
+        for (auto& c : commands_) 
         {
-            // command: автобус или остановка 
+            // command: автобус или остановка s
             if (c.command == "Stop"s) 
             {
-                // id: номер автобуса или название остановки
-                // description: маршрут или координаты
-                catalogue.AddStop(c.id, {c.description.at("latitude"s).AsDouble(), c.description.at("longitude"s).AsDouble()});
+                catalogue.AddStop(MakeStop(c));
             }
         }
 
-        for (const auto& c : commands_) 
+        for (auto& c : commands_) 
         {
             // command: автобус или остановка 
             if (c.command == "Stop"s && c.description.count("road_distances"s)) 
             {
-                // id: номер автобуса или название остановки
-                // description: маршрут или координаты
-                for (const auto &road_distance : c.description.at("road_distances"s).AsMap()) 
-                {
-                    catalogue.SetDistance(catalogue.GetStop(c.id), catalogue.GetStop(road_distance.first), road_distance.second.AsInt());
-                }
+                AddDistance(c, catalogue);
             }
         }
 
-        for (const auto& c : commands_) 
+        for (auto& c : commands_) 
         {
             // command: автобус или остановка
             if (c.command == "Bus"s) 
             {
-                // id: номер автобуса или название остановки
-                // description: маршрут или координаты
-                catalogue.AddBus(c.id, ParseRoute(c.description), c.description.at("is_roundtrip"s).AsBool());
+                catalogue.AddBus(MakeBus(c, catalogue));
             }
         }
     }
@@ -130,6 +150,13 @@ namespace json_reader
         const json::Array& stop_label_offset = request.at("stop_label_offset"s).AsArray();
         render_settings.stop_label_offset = { stop_label_offset[0].AsDouble(), stop_label_offset[1].AsDouble() };
         
+        ProcessTheColor(request, render_settings);
+
+        return render_settings;
+    }
+
+    void ProcessTheColor(const json::Dict& request, renderer::RenderSettings& render_settings)
+    {
         if (request.at("underlayer_color"s).IsString()) 
         {
             render_settings.underlayer_color = request.at("underlayer_color"s).AsString();
@@ -162,7 +189,7 @@ namespace json_reader
         
         render_settings.underlayer_width = request.at("underlayer_width"s).AsDouble();
         const json::Array& color_palette = request.at("color_palette"s).AsArray();
-        
+
         for (const auto& color : color_palette) 
         {
             if (color.IsString()) 
@@ -195,7 +222,100 @@ namespace json_reader
                 throw std::logic_error("wrong color palette"s);
             }
         }
+    }
+
+    void JsonReader::ProcessRequests(const json::Node& stat_requests, tc::TransportCatalogue& catalogue, RequestHandler& request_handler) const 
+    {
+        json::Array result;
+
+        for (auto& request : stat_requests.AsArray()) 
+        {
+            const auto& request_map = request.AsMap();
+            const auto& type = request_map.at("type").AsString();
+
+            if (type == "Stop") 
+            {
+                result.push_back(PrintStop(request_map, catalogue, request_handler).AsMap());
+            }
+
+            if (type == "Bus") 
+            {
+                result.push_back(PrintBus(request_map, catalogue).AsMap());
+            }
+
+            if(type == "Map")
+            {
+                result.push_back(PrintMap(request_map, request_handler).AsMap());
+            }
+        }
         
-        return render_settings;
+        json::Print(json::Document{ result }, std::cout);
+    }
+
+    const json::Node JsonReader::PrintBus(const json::Dict& request, tc::TransportCatalogue& catalogue_) const 
+    {
+        json::Dict result;
+
+        const std::string& route_number = request.at("name").AsString();
+        const tc::Bus* bus = catalogue_.GetBus(route_number);
+        result["request_id"] = request.at("id").AsInt();
+
+        if (bus != nullptr) 
+        {
+            auto bus_stat = catalogue_.GetBusStat(route_number);
+
+            result["curvature"] = bus_stat->curvature;
+            result["route_length"] = bus_stat->route_length;
+            result["stop_count"] = static_cast<int>(bus_stat->total_stops);
+            result["unique_stop_count"] = static_cast<int>(bus_stat->unique_stops);
+        }
+
+        else 
+        {
+            result["error_message"] = json::Node{ static_cast<std::string>("not found") };
+        }
+        
+        return json::Node{ result };
+    }
+
+    const json::Node JsonReader::PrintStop(const json::Dict& request, tc::TransportCatalogue& catalogue_, RequestHandler& request_handler) const 
+    {
+        json::Dict result;
+
+        const std::string& stop_name = request.at("name").AsString();
+        const tc::Stop* stop = catalogue_.GetStop(stop_name);
+        result["request_id"] = request.at("id").AsInt();
+
+        if (stop != nullptr) 
+        {
+            json::Array buses;
+
+            for (const auto& bus : request_handler.GetBusesByStop(stop_name)) 
+            {
+                buses.push_back(bus);
+            }
+            
+            result["buses"] = buses;
+        }
+
+        else 
+        {
+            result["error_message"] = json::Node{ static_cast<std::string>("not found") };
+        }
+
+        return json::Node{ result };
+    }
+
+    const json::Node JsonReader::PrintMap(const json::Dict& request, RequestHandler& request_handler) const 
+    {
+        json::Dict result;
+
+        result["request_id"] = request.at("id").AsInt();
+        std::ostringstream strm;
+        svg::Document map = request_handler.RenderMap();
+        map.Render(strm);
+        result["map"] = strm.str();
+
+        return json::Node{ result };
     }
 } // end namespace json_reader

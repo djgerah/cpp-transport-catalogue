@@ -41,34 +41,23 @@
     };
  */
 
-namespace handler 
+class RequestHandler 
 {
-    class RequestHandler 
-    {
-        public:
-            // MapRenderer понадобится в следующей части итогового проекта
-            RequestHandler(const tc::TransportCatalogue& catalogue, const renderer::MapRenderer& renderer)
-                : catalogue_(catalogue)
-                , renderer_(renderer) 
-                {}
+    public:
+        // MapRenderer понадобится в следующей части итогового проекта
+        RequestHandler(const tc::TransportCatalogue& catalogue, const renderer::MapRenderer& renderer)
+            : catalogue_(catalogue)
+            , renderer_(renderer) 
+            {}
 
-        void ProcessRequests(const json::Node& stat_requests) const;
-        // Рассчитывает протяженность маршрута
-        std::pair<int, double> GetRouteLength(const tc::Bus* bus) const;
-        // Возвращает информацию о маршруте (запрос Bus)
-        std::optional<tc::BusStat> GetBusStat(const std::string_view bus_number) const;
-        // Возврашает список автобусов по остановке
-        const std::set<std::string> GetBusesByStop(std::string_view stop_name) const;
-        // Этот метод будет нужен в следующей части итогового проекта
-        svg::Document RenderMap() const;
+    // Возврашает список автобусов по остановке
+    const std::set<std::string> GetBusesByStop(std::string_view stop_name) const;
+    // Этот метод будет нужен в следующей части итогового проекта
+    svg::Document RenderMap() const;
 
-    private:
-        
-        const json::Node PrintBus(const json::Dict& request_map) const;
-        const json::Node PrintStop(const json::Dict& request_map) const;
-        const json::Node PrintMap(const json::Dict& request_map) const;
-        // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
-        const tc::TransportCatalogue& catalogue_;
-        const renderer::MapRenderer& renderer_;
-    };
-} // end namespace handler
+private:
+    
+    // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
+    const tc::TransportCatalogue& catalogue_;
+    const renderer::MapRenderer& renderer_;
+};

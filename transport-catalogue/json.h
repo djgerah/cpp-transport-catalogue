@@ -21,14 +21,18 @@ namespace json
 
             using runtime_error::runtime_error;
     };
- 
-class Node final 
+
+// Поместив nullptr_t в начале списка типов, он становится типом по умолчанию для этого variant
+class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>
 {
     public:
-        /* Реализуйте Node, используя std::variant */
-        // Поместив nullptr_t в начале списка типов, он становится типом по умолчанию для этого variant
-        using Value =  std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
-    
+        // Унаследовав данный класс от std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>
+        // подключается доступ к конструкторам базовых типов std::variant через using
+        using variant::variant;
+        using Value = variant;
+
+        // Необходимость обьявления и реализации конструкторов класса отпадает
+/*
         Node() = default;
         Node(bool value);
         Node(Array array);
@@ -37,6 +41,7 @@ class Node final
         Node(std::string value);
         Node(std::nullptr_t);
         Node(double value);
+*/
         
         const Array& AsArray() const;
         const Dict& AsMap() const;
@@ -56,22 +61,22 @@ class Node final
     
         const Value& GetValue() const 
         { 
-            return value_; 
+            return *this; 
         }
 
         bool operator==(const Node& rhs) const 
         {
-            return value_ == rhs.value_;
+            return GetValue() == rhs.GetValue();
         }
 
         bool operator!=(const Node& rhs) const 
         {
-            return !(value_ == rhs.value_);
+            return !(GetValue() == rhs.GetValue());
         }
             
     private:
 
-        Value value_;
+        // Value value_;
     };
     
     class Document 

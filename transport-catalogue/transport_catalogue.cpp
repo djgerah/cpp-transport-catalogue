@@ -1,10 +1,11 @@
 #include "transport_catalogue.h"
+#include <stdexcept>
 
 namespace tc 
 {
-    void TransportCatalogue::AddStop(const std::string& stop_name, const geo::Coordinates& coordinates) 
+    void TransportCatalogue::AddStop(tc::Stop stop) 
     {
-        stops_.push_back({ stop_name, coordinates, {} });
+        stops_.push_back(stop);
         stopname_to_stop_[stops_.back().name] = &stops_.back();
     }
 
@@ -21,25 +22,18 @@ namespace tc
         }
     }
 
-    void TransportCatalogue::AddBus(const std::string& bus_number, const std::vector<std::string_view>& stops, bool is_roundtrip)
+    void TransportCatalogue::AddBus(tc::Bus bus)
     {   
-        std::vector<const Stop*> stop_ptr;
-
-        for (const auto& bus_stop : stops) 
-        {
-            stop_ptr.push_back(GetStop(bus_stop));
-        }
-        
-        buses_.push_back({ bus_number, stop_ptr, is_roundtrip });
+        buses_.push_back(bus);
         busname_to_bus_[buses_.back().number] = &buses_.back();
 
-        for (const auto& bus_stop : stops) 
+        for (const auto& bus_stop : bus.stops) 
         {
             for (auto& stop : stops_) 
             {
-                if (stop.name == GetStop(bus_stop)->name) 
+                if (stop.name == bus_stop->name)
                 {
-                    stop.buses.insert(bus_number);
+                    stop.buses.insert(bus.number);
                 }
             }
         }
@@ -106,5 +100,59 @@ namespace tc
         {
             return 0;
         }
+    }
+
+    std::pair<int, double> TransportCatalogue::GetRouteLength(const tc::Bus* bus) const
+    {
+        int route_length = 0;
+        double geo_length = 0.0;
+
+        for (size_t i = 0; i < bus->stops.size() - 1; ++i) 
+        {
+            auto from = bus->stops[i];
+            auto to = bus->stops[i + 1];
+
+            if (bus->is_roundtrip) 
+            {
+                route_length += GetDistance(from, to);
+                geo_length += geo::ComputeDistance(from->coordinates, to->coordinates);
+            }
+
+            else 
+            {
+                route_length += GetDistance(from, to) + GetDistance(to, from);
+                geo_length += geo::ComputeDistance(from->coordinates, to->coordinates) * 2;
+            }
+        }
+
+        return { route_length, geo_length };
+    }
+
+    std::optional<tc::BusStat> TransportCatalogue::GetBusStat(const std::string_view bus_number) const 
+    {
+        tc::BusStat bus_stat;
+        const tc::Bus* bus = GetBus(bus_number);
+
+        if (!bus)
+        {
+            throw std::invalid_argument("bus not found");
+        }
+
+        if (bus->is_roundtrip) 
+        {
+            bus_stat.total_stops = bus->stops.size();
+        }
+
+        else 
+        {
+            bus_stat.total_stops = bus->stops.size() * 2 - 1;
+        }
+
+        auto distance = GetRouteLength(bus);
+        bus_stat.unique_stops = GetUniqStops(bus_number).size();
+        bus_stat.route_length = distance.first;
+        bus_stat.curvature = distance.first / distance.second;
+
+        return bus_stat;
     }
 } // end namespace tc

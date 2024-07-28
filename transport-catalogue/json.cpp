@@ -323,6 +323,7 @@ namespace json
         }  
     }  // namespace
         
+/*
         Node::Node(Array array) 
             :
             value_(std::move(array)) 
@@ -351,6 +352,7 @@ namespace json
         Node::Node(double value)
             : value_(value) 
             {}
+*/
             
         const Array& Node::AsArray() const 
         {
@@ -358,7 +360,7 @@ namespace json
             {
                 throw std::logic_error("Error: not array"s);
             }
-            return std::get<Array>(value_);
+            return std::get<Array>(*this);
         }
         
         const Dict& Node::AsMap() const 
@@ -367,7 +369,7 @@ namespace json
             {
                 throw std::logic_error("Error: not dict"s);
             }
-            return std::get<Dict>(value_);
+            return std::get<Dict>(*this);
         }
         
         const std::string& Node::AsString() const 
@@ -376,7 +378,7 @@ namespace json
             {
                 throw std::logic_error("Error: not string"s);
             }
-            return std::get<std::string>(value_);
+            return std::get<std::string>(*this);
         }
             
         int Node::AsInt() const 
@@ -385,7 +387,7 @@ namespace json
             {
                 throw std::logic_error("Error: not int"s);
             }
-            return std::get<int>(value_);
+            return std::get<int>(*this);
         }
         
         double Node::AsDouble() const 
@@ -397,7 +399,7 @@ namespace json
 
             if(IsPureDouble())
             {
-                return std::get<double>(value_);
+                return std::get<double>(*this);
             }
 
             else
@@ -412,17 +414,17 @@ namespace json
             {
                 throw std::logic_error("Error: not bool"s);
             }
-            return std::get<bool>(value_);
+            return std::get<bool>(*this);
         }
             
         bool Node::IsNull() const 
         {
-            return std::holds_alternative<std::nullptr_t>(value_);
+            return std::holds_alternative<std::nullptr_t>(*this);
         }
             
         bool Node::IsInt() const 
         {
-            return std::holds_alternative<int>(value_);
+            return std::holds_alternative<int>(*this);
         }
         
         bool Node::IsDouble() const 
@@ -432,27 +434,27 @@ namespace json
             
         bool Node::IsPureDouble() const 
         {
-            return std::holds_alternative<double>(value_);
+            return std::holds_alternative<double>(*this);
         }
             
         bool Node::IsBool() const 
         {
-            return std::holds_alternative<bool>(value_);
+            return std::holds_alternative<bool>(*this);
         }
             
         bool Node::IsString() const 
         {
-            return std::holds_alternative<std::string>(value_);
+            return std::holds_alternative<std::string>(*this);
         }
             
         bool Node::IsArray() const 
         {
-            return std::holds_alternative<Array>(value_);
+            return std::holds_alternative<Array>(*this);
         }
             
         bool Node::IsMap() const 
         {
-            return std::holds_alternative<Dict>(value_);
+            return std::holds_alternative<Dict>(*this);
         }
         
         Document Load(std::istream& input) 
