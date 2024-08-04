@@ -10,7 +10,7 @@ int main()
     document.FillTransportCatalogue(catalogue);
     
     const json::Node& stat_requests = document.GetStatRequests();
-    const json::Dict& render_settings = document.GetRenderSettings().AsMap();
+    const json::Dict& render_settings = document.GetRenderSettings().AsDict();
     const renderer::MapRenderer& renderer = json_reader::FillRenderSettings(render_settings);
 
     RequestHandler request_handler(catalogue, renderer);

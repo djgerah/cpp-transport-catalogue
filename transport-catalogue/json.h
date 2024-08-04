@@ -1,5 +1,5 @@
 #pragma once
- 
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -22,8 +22,9 @@ namespace json
             using runtime_error::runtime_error;
     };
 
+/* Реализуйте Node, используя std::variant */
 // Поместив nullptr_t в начале списка типов, он становится типом по умолчанию для этого variant
-class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>
+class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> 
 {
     public:
         // Унаследовав данный класс от std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>
@@ -31,7 +32,7 @@ class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, 
         using variant::variant;
         using Value = variant;
 
-        // Необходимость обьявления и реализации конструкторов класса отпадает
+        // Отпадает необходимость обьявления и реализации конструкторов: 
 /*
         Node() = default;
         Node(bool value);
@@ -42,9 +43,13 @@ class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, 
         Node(std::nullptr_t);
         Node(double value);
 */
-        
+    
+        Node(Value value) 
+            : variant(std::move(value)) 
+            {}
+
         const Array& AsArray() const;
-        const Dict& AsMap() const;
+        const Dict& AsDict() const;
         int AsInt() const;
         double AsDouble() const;
         bool AsBool() const;
@@ -57,13 +62,18 @@ class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, 
         bool IsBool() const;
         bool IsString() const;
         bool IsArray() const;
-        bool IsMap() const;
-    
+        bool IsDict() const;
+
         const Value& GetValue() const 
         { 
             return *this; 
         }
 
+        Value& GetValue() 
+        {
+            return *this;
+        }
+        
         bool operator==(const Node& rhs) const 
         {
             return GetValue() == rhs.GetValue();
@@ -73,12 +83,12 @@ class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, 
         {
             return !(GetValue() == rhs.GetValue());
         }
-            
+
     private:
 
         // Value value_;
-    };
-    
+};
+
     class Document 
     {
         public:
@@ -108,7 +118,8 @@ class Node final : private std::variant<std::nullptr_t, Array, Dict, bool, int, 
 
             Node root_;
     };
- 
-    Document Load(std::istream& input);   
+
+    Document Load(std::istream& input);
+
     void Print(const Document& doc, std::ostream& output);
-} // end namespace json 
+}  // end namespace json

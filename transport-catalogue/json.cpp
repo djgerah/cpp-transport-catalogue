@@ -1,4 +1,5 @@
 #include "json.h"
+#include <iterator>
 
 using namespace std::literals;
 
@@ -7,7 +8,7 @@ namespace json
     namespace 
     {
         Node LoadNode(std::istream& input);
-        
+
         std::string LoadLiteral(std::istream& input) 
         {
             std::string str;
@@ -19,7 +20,7 @@ namespace json
 
             return str;
         }
-        
+
         Node LoadArray(std::istream& input) 
         {
             std::vector<Node> result;
@@ -41,7 +42,7 @@ namespace json
 
             return Node(std::move(result));
         }
-        
+
         Node LoadNull(std::istream& input) 
         {
             if (auto literal = LoadLiteral(input); literal == "null"sv) 
@@ -54,7 +55,7 @@ namespace json
                 throw ParsingError("Failed to parse '"s + literal + "' as null"s);
             }
         }
-        
+
         Node LoadBool(std::istream& input) 
         {
             const auto s = LoadLiteral(input);
@@ -74,7 +75,7 @@ namespace json
                 throw ParsingError("Failed to parse '"s + s + "' as bool"s);
             }
         }
-        
+
         Node LoadNumber(std::istream& input) 
         {
             std::string parsed_num;
@@ -169,7 +170,7 @@ namespace json
                 throw ParsingError("Failed to convert "s + parsed_num + " to number"s);
             }
         }
-        
+
         Node LoadString(std::istream& input) 
         {
             auto it = std::istreambuf_iterator<char>(input);
@@ -240,7 +241,7 @@ namespace json
 
             return Node(std::move(s));
         }
-            
+
         Node LoadDict(std::istream& input) 
         {
             Dict dict;
@@ -279,7 +280,7 @@ namespace json
 
             return Node(std::move(dict));
         }
-        
+
         Node LoadNode(std::istream& input) 
         {
             char c;
@@ -321,175 +322,176 @@ namespace json
                     return LoadNumber(input);
             }
         }  
-    }  // namespace
-        
+    }  // end namespace
+
 /*
-        Node::Node(Array array) 
-            :
-            value_(std::move(array)) 
-            {}
-            
-        Node::Node(std::nullptr_t) 
-            : Node() 
-            {}
+    Node::Node(Array array) 
+        :
+        value_(std::move(array)) 
+        {}
         
-        Node::Node(bool value)
-            : value_(value) 
-            {}
-        
-        Node::Node(Dict map)
-            : value_(std::move(map)) 
-            {}
-        
-        Node::Node(int value)
-            : value_(value) 
-            {}
-        
-        Node::Node(std::string value)
-            : value_(std::move(value)) 
-            {}
-        
-        Node::Node(double value)
-            : value_(value) 
-            {}
+    Node::Node(std::nullptr_t) 
+        : Node() 
+        {}
+    
+    Node::Node(bool value)
+        : value_(value) 
+        {}
+    
+    Node::Node(Dict map)
+        : value_(std::move(map)) 
+        {}
+    
+    Node::Node(int value)
+        : value_(value) 
+        {}
+    
+    Node::Node(std::string value)
+        : value_(std::move(value)) 
+        {}
+    
+    Node::Node(double value)
+        : value_(value) 
+        {}
 */
-            
-        const Array& Node::AsArray() const 
-        {
-            if (!IsArray()) 
-            {
-                throw std::logic_error("Error: not array"s);
-            }
-            return std::get<Array>(*this);
-        }
-        
-        const Dict& Node::AsMap() const 
-        {
-            if (!IsMap()) 
-            {
-                throw std::logic_error("Error: not dict"s);
-            }
-            return std::get<Dict>(*this);
-        }
-        
-        const std::string& Node::AsString() const 
-        {
-            if (!IsString()) 
-            {
-                throw std::logic_error("Error: not string"s);
-            }
-            return std::get<std::string>(*this);
-        }
-            
-        int Node::AsInt() const 
-        {  
-            if (!IsInt()) 
-            {
-                throw std::logic_error("Error: not int"s);
-            }
-            return std::get<int>(*this);
-        }
-        
-        double Node::AsDouble() const 
-        {
-            if (!IsDouble()) 
-            {
-                throw std::logic_error("Error: not double"s);
-            }
 
-            if(IsPureDouble())
-            {
-                return std::get<double>(*this);
-            }
+    bool Node::IsNull() const 
+    {
+        return std::holds_alternative<std::nullptr_t>(*this);
+    }
+        
+    bool Node::IsInt() const 
+    {
+        return std::holds_alternative<int>(*this);
+    }
+    
+    bool Node::IsDouble() const 
+    {
+        return IsInt() || IsPureDouble();
+    }
+        
+    bool Node::IsPureDouble() const 
+    {
+        return std::holds_alternative<double>(*this);
+    }
 
-            else
-            {
-                return AsInt();
-            }    
-        }
+    bool Node::IsBool() const 
+    {
+        return std::holds_alternative<bool>(*this);
+    }
         
-        bool Node::AsBool() const 
-        {
-            if (!IsBool()) 
-            {
-                throw std::logic_error("Error: not bool"s);
-            }
-            return std::get<bool>(*this);
-        }
-            
-        bool Node::IsNull() const 
-        {
-            return std::holds_alternative<std::nullptr_t>(*this);
-        }
-            
-        bool Node::IsInt() const 
-        {
-            return std::holds_alternative<int>(*this);
-        }
+    bool Node::IsString() const 
+    {
+        return std::holds_alternative<std::string>(*this);
+    }
         
-        bool Node::IsDouble() const 
-        {
-            return IsInt() || IsPureDouble();
-        }
-            
-        bool Node::IsPureDouble() const 
-        {
-            return std::holds_alternative<double>(*this);
-        }
-            
-        bool Node::IsBool() const 
-        {
-            return std::holds_alternative<bool>(*this);
-        }
-            
-        bool Node::IsString() const 
-        {
-            return std::holds_alternative<std::string>(*this);
-        }
-            
-        bool Node::IsArray() const 
-        {
-            return std::holds_alternative<Array>(*this);
-        }
-            
-        bool Node::IsMap() const 
-        {
-            return std::holds_alternative<Dict>(*this);
-        }
+    bool Node::IsArray() const 
+    {
+        return std::holds_alternative<Array>(*this);
+    }
         
-        Document Load(std::istream& input) 
-        {
-            return Document{LoadNode(input)};
-        }
-        
-        // Контекст вывода, хранит ссылку на поток вывода и текущий отсуп
-        struct PrintContext 
-        {
-            std::ostream& out;
-            int indent_step = 4;
-            int indent = 0;
+    bool Node::IsDict() const 
+    {
+        return std::holds_alternative<Dict>(*this);
+    }
 
-            void PrintIndent() const 
-            {
-                for (int i = 0; i < indent; ++i) 
-                {
-                    out.put(' ');
-                }
-            }
-            // Возвращает новый контекст вывода с увеличенным смещением
-            PrintContext Indented() const 
-            {
-                return {out, indent_step, indent_step + indent};
-            }
-        };
-        
-        void PrintNode(const Node& node, const PrintContext& ctx);
-        
-        template <typename Value>
-        void PrintValue(const Value& value, const PrintContext& ctx) {
-            ctx.out << value;
+    const Array& Node::AsArray() const 
+    {
+        if (!IsArray()) 
+        {
+            throw std::logic_error("Error: not array"s);
         }
+        return std::get<Array>(*this);
+    }
+    
+    const Dict& Node::AsDict() const 
+    {
+        if (!IsDict()) 
+        {
+            throw std::logic_error("Error: not dict"s);
+        }
+        return std::get<Dict>(*this);
+    }
         
+    const std::string& Node::AsString() const 
+    {
+        if (!IsString()) 
+        {
+            throw std::logic_error("Error: not string"s);
+        }
+        return std::get<std::string>(*this);
+    }
+            
+    int Node::AsInt() const 
+    {  
+        if (!IsInt()) 
+        {
+            throw std::logic_error("Error: not int"s);
+        }
+        return std::get<int>(*this);
+    }
+        
+    double Node::AsDouble() const 
+    {
+        if (!IsDouble()) 
+        {
+            throw std::logic_error("Error: not double"s);
+        }
+
+        if(IsPureDouble())
+        {
+            return std::get<double>(*this);
+        }
+
+        else
+        {
+            return AsInt();
+        }    
+    }
+        
+    bool Node::AsBool() const 
+    {
+        if (!IsBool()) 
+        {
+            throw std::logic_error("Error: not bool"s);
+        }
+        return std::get<bool>(*this);
+    }
+
+    Document Load(std::istream& input) 
+    {
+        return Document{LoadNode(input)};
+    }
+
+    // Контекст вывода, хранит ссылку на поток вывода и текущий отсуп
+    struct PrintContext 
+    {
+        std::ostream& out;
+        int indent_step = 4;
+        int indent = 0;
+
+        void PrintIndent() const 
+        {
+            for (int i = 0; i < indent; ++i) 
+            {
+                out.put(' ');
+            }
+        }
+        // Возвращает новый контекст вывода с увеличенным смещением
+        PrintContext Indented() const 
+        {
+            return {out, indent_step, indent_step + indent};
+        }
+    };
+
+    void PrintNode(const Node& value, const PrintContext& ctx);
+
+    template <typename Value>
+    void PrintValue(const Value& value, const PrintContext& ctx) 
+    {
+        ctx.out << value;
+    }
+
     void PrintString(const std::string& value, std::ostream& out) 
     {
         out.put('"');
@@ -521,11 +523,11 @@ namespace json
         }
         out.put('"');
     }
-    
-    // В специализации шаблона PrintValue для типа string параметр value передаётся
+
+    // В специализации шаблона PrintValue для типа bool параметр value передаётся
     // по константной ссылке, как и в основном шаблоне.
     // В качестве альтернативы можно использовать перегрузку:
-    // void PrintValue(string value, const PrintContext& ctx);
+    // void PrintValue(bool value, const PrintContext& ctx);
     template <>
     void PrintValue<std::string>(const std::string& value, const PrintContext& ctx) 
     {
@@ -537,13 +539,13 @@ namespace json
     {
         ctx.out << "null"sv;
     }
-        
+
     template <>
     void PrintValue<bool>(const bool& value, const PrintContext& ctx) 
     {
         ctx.out << (value ? "true"sv : "false"sv);
     }
-        
+
     template <>
     void PrintValue<Array>(const Array& nodes, const PrintContext& ctx) 
     {
@@ -572,7 +574,7 @@ namespace json
         ctx.PrintIndent();
         out.put(']');
     }
-        
+
     template <>
     void PrintValue<Dict>(const Dict& nodes, const PrintContext& ctx) 
     {
@@ -603,7 +605,7 @@ namespace json
         ctx.PrintIndent();
         out.put('}');
     }
-        
+
     void PrintNode(const Node& node, const PrintContext& ctx) 
     {
         std::visit(
@@ -613,9 +615,10 @@ namespace json
             },
             node.GetValue());
     }
-            
+
     void Print(const Document& doc, std::ostream& output) 
     {
         PrintNode(doc.GetRoot(), PrintContext{output});
     }
-}// namespace json
+
+}  // namespace json

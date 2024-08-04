@@ -48,6 +48,8 @@ namespace json_reader
         
             tc::Stop MakeStop(const json_reader::CommandDescription& c) const;
             tc::Bus MakeBus(const json_reader::CommandDescription& c, tc::TransportCatalogue& catalogue) const;
+            svg::Rgb MakeRGB(const json::Array& type);
+            svg::Rgba MakeRGBA(const json::Array& type);
             void AddDistance(const json_reader::CommandDescription& c, tc::TransportCatalogue& catalogue) const;
             void ParseRequest(const json::Node &request);
             static CommandDescription ParseCommandDescription(const json::Node &request);
