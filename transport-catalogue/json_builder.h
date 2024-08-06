@@ -84,7 +84,6 @@ namespace json
 
         // Гарантирует, что за вызовом StartArray следует Value, StartDict, StartArray или EndArray
         // StartArray() → Value(), StartDict(), StartArray(), EndArray() 
-
         // Гарантирует, что после вызова StartArray и серии Value следует Value, StartDict, StartArray или EndArray
         // StartArray() → Value() → Value(), StartDict(), StartArray(), EndArray()
         class ArrayItemContext : public BaseContext 
