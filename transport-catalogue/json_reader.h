@@ -1,13 +1,11 @@
 #pragma once
 
-#include <string>
-#include <vector>
 #include "json.h"
+#include "transport_catalogue.h"
 #include "map_renderer.h"
 #include "request_handler.h"
-#include "transport_catalogue.h"
 
-namespace json_reader 
+namespace json_reader
 {
     struct CommandDescription 
     {
@@ -30,26 +28,31 @@ namespace json_reader
     class JsonReader 
     {
         public:
-
-            explicit JsonReader(std::istream& document)
-                : document_(json::Load(document)) 
-                {}          
+        
+            JsonReader(std::istream& document)
+                : document_(json::Load(document))
+                {}
 
             const json::Node& GetBaseRequests() const;
             const json::Node& GetStatRequests() const;
             const json::Node& GetRenderSettings() const;
-            const json::Node PrintBus(const json::Dict& request_map, tc::TransportCatalogue& catalogue_) const;
-            const json::Node PrintStop(const json::Dict& request_map, tc::TransportCatalogue& catalogue_, RequestHandler& request_handler) const;
-            const json::Node PrintMap(const json::Dict& request_map, RequestHandler& request_handler) const;
+            const json::Node& GetRoutingSettings() const;
+            const json::Node PrintBus(const json::Dict& request, tc::TransportCatalogue& catalogue_) const;
+            const json::Node PrintStop(const json::Dict& request, tc::TransportCatalogue& catalogue_, RequestHandler& request_handler) const;
+            const json::Node PrintMap(const json::Dict& request, RequestHandler& request_handler) const;
+            const json::Node PrintRoute(const json::Dict& request, tc::TransportCatalogue& catalogue_, RequestHandler& request_handler) const;
             void ProcessRequests(const json::Node& stat_requests, tc::TransportCatalogue& catalogue, RequestHandler& request_handler) const;
-            void FillTransportCatalogue(tc::TransportCatalogue &catalogue);
+            void FillTransportCatalogue(tc::TransportCatalogue& catalogue);
+            renderer::MapRenderer FillRenderSettings(const json::Node& settings) const;
+            tc::RoutingSettings FillRoutingSettings(const json::Node& settings) const;
 
         private:
-        
+            
             tc::Stop MakeStop(const json_reader::CommandDescription& c) const;
             tc::Bus MakeBus(const json_reader::CommandDescription& c, tc::TransportCatalogue& catalogue) const;
-            svg::Rgb MakeRGB(const json::Array& type);
-            svg::Rgba MakeRGBA(const json::Array& type);
+            void ProcessColors(const json::Dict& request, renderer::RenderSettings& render_settings) const;
+            svg::Rgb MakeRGB(const json::Array& type) const;
+            svg::Rgba MakeRGBA(const json::Array& type) const;
             void AddDistance(const json_reader::CommandDescription& c, tc::TransportCatalogue& catalogue) const;
             void ParseRequest(const json::Node &request);
             static CommandDescription ParseCommandDescription(const json::Node &request);
@@ -62,6 +65,4 @@ namespace json_reader
             json::Document document_;
             std::vector<CommandDescription> commands_;
     };
-        void ProcessTheColor(const json::Dict& request, renderer::RenderSettings& render_settings);
-        const renderer::MapRenderer FillRenderSettings(const json::Dict& request_map);
 } // end namespace json_reader

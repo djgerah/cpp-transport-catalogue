@@ -2,12 +2,14 @@
     "tasks": [
         {
             "type": "cppbuild",
-            "label": "C/C++: cpp.exe build active file",
+            "label": "C++: cpp.exe build active file",
             "command": "C:\\mingw64\\bin\\cpp.exe",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "${fileDirname}/*.cpp",
+                "-Wall",
+                "-Werror",
+                "${fileDirname}\\*.cpp",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
@@ -23,12 +25,14 @@
 
         {
             "type": "cppbuild",
-            "label": "C/C++: g++.exe build active file",
+            "label": "C++: g++.exe build active file",
             "command": "C:\\mingw64\\bin\\g++.exe",
             "args": [
-                "-fdiagnostics-color=always", 
+                "-fdiagnostics-color=always",
                 "-g",
-                "${fileDirname}/*.cpp",
+                "-Wall",
+                "-Werror",
+                "${fileDirname}\\*.cpp",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],
@@ -47,12 +51,14 @@
 
         {
             "type": "cppbuild",
-            "label": "C/C++: clang++.exe build active file",
+            "label": "C++: clang++.exe build active file",
             "command": "C:\\mingw64\\bin\\clang++.exe",
             "args": [
                 "-fdiagnostics-color=always", 
                 "-g",
-                "${fileDirname}/*.cpp",
+                "-Wall",
+                "-Werror",
+                "${fileDirname}\\*.cpp",
                 "-o",
                 "${fileDirname}\\${fileBasenameNoExtension}.exe"
             ],

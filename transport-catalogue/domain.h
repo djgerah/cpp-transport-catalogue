@@ -8,8 +8,6 @@
 
 namespace tc 
 {
-    struct Bus;
-    
     struct Stop 
     {
         std::string name;
@@ -28,7 +26,7 @@ namespace tc
     {
         size_t total_stops = 0;
         size_t unique_stops = 0;
-        int route_length = 0;
+        double route_length = 0.0;
         double curvature = 0.0;
     };
-} // namespace tc
+} // end namespace tc

@@ -8,10 +8,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
 #include "domain.h"
 #include "geo.h"
 
-namespace tc
+namespace tc 
 {
     struct Hasher
     {
@@ -36,15 +37,15 @@ namespace tc
 
     class TransportCatalogue 
     {
-
         using StopMap = std::unordered_map<std::string_view, const Stop*>;
         using BusMap = std::unordered_map<std::string_view, const Bus*>;
         using HashedStops = std::unordered_set<const Stop*, Hasher>;
         using HashedDistanceBtwStops = std::unordered_map<std::pair<const Stop*, const Stop*>, int, Hasher>;
 
         public:
+
             // добавление остановки в базу
-            void AddStop(Stop stop);
+            void AddStop(tc::Stop stop);
             // поиск остановки по названию
             const Stop* GetStop(std::string_view stop_name) const;
             // добавление автобуса в базу
@@ -52,7 +53,9 @@ namespace tc
             // поиск автобуса по номеру
             const Bus* GetBus(std::string_view bus_name) const;
             // получение количества уникальных остановок автобуса
-            std::unordered_set<const Stop*, Hasher> GetUniqStops(std::string_view bus_number) const;
+            std::unordered_set<const Stop*, Hasher> GetUniqueStops(std::string_view bus_number) const;
+            // получение списка всех остановок
+            const std::map<std::string_view, const Stop*> GetAllStops() const;
             // получение всех автобусов парка
             const std::map<std::string_view, const Bus*> GetAllBuses() const;
             // устанавливает расстояние между парой остановок
@@ -68,10 +71,10 @@ namespace tc
             // База остановок
             std::deque<Stop> stops_;
             StopMap stopname_to_stop_;
-            // База автобусо
+            // База автобусов
             std::deque<Bus> buses_;
             BusMap busname_to_bus_;
-            
+
             HashedDistanceBtwStops dist_btw_stops;
     };
-} // end namespace tc
+}  // end namespace tc

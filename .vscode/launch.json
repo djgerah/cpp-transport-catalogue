@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             "args": [],
-            "stopAtEntry": false,
+            "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
@@ -28,7 +28,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "C/C++: g++.exe build active file"
+            "preLaunchTask": "C++: g++.exe build active file"
         },
 
         {
@@ -37,13 +37,13 @@
             "request": "launch",
             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
             "args": [],
-            "stopAtEntry": false,
+            "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,
             "MIMode": "lldb",
             "miDebuggerPath": "C:\\mingw64\\bin\\lldb-mi.exe",
-            "preLaunchTask": "C/C++: clang++.exe build active file"
+            "preLaunchTask": "C++: clang++.exe build active file"
         },
     ]
 }

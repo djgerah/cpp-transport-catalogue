@@ -1,63 +1,34 @@
 #pragma once
 
+#include <sstream>
+#include <optional>
+
 #include "json.h"
 #include "transport_catalogue.h"
 #include "map_renderer.h"
-
-/*
- * Здесь можно было бы разместить код обработчика запросов к базе, содержащего логику, которую не
- * хотелось бы помещать ни в transport_catalogue, ни в json reader.
- *
- * В качестве источника для идей предлагаем взглянуть на нашу версию обработчика запросов.
- * Вы можете реализовать обработку запросов способом, который удобнее вам.
- *
- * Если вы затрудняетесь выбрать, что можно было бы поместить в этот файл,
- * можете оставить его пустым.
- */
-
- // Класс RequestHandler играет роль Фасада, упрощающего взаимодействие JSON reader-а
- // с другими подсистемами приложения.
- // См. паттерн проектирования Фасад: https://ru.wikipedia.org/wiki/Фасад_(шаблон_проектирования)
- /*
-    class RequestHandler 
-    {
-        public:
-            // MapRenderer понадобится в следующей части итогового проекта
-            RequestHandler(const TransportCatalogue& db, const renderer::MapRenderer& renderer);
-
-            // Возвращает информацию о маршруте (запрос Bus)
-            std::optional<BusStat> GetBusStat(const std::string_view& bus_name) const;
-
-            // Возвращает маршруты, проходящие через
-            const std::unordered_set<BusPtr>* GetBusesByStop(const std::string_view& stop_name) const;
-
-            // Этот метод будет нужен в следующей части итогового проекта
-            svg::Document RenderMap() const;
-
-        private:
-            // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
-            const TransportCatalogue& db_;
-            const renderer::MapRenderer& renderer_;
-    };
- */
+#include "transport_router.h"
 
 class RequestHandler 
 {
     public:
-        // MapRenderer понадобится в следующей части итогового проекта
-        RequestHandler(const tc::TransportCatalogue& catalogue, const renderer::MapRenderer& renderer)
+    
+        RequestHandler(const tc::TransportCatalogue& catalogue, const renderer::MapRenderer& renderer, const tc::TransportRouter& router)
             : catalogue_(catalogue)
-            , renderer_(renderer) 
+            , renderer_(renderer)
+            , router_(router)
             {}
 
-    // Возврашает список автобусов по остановке
-    const std::set<std::string> GetBusesByStop(std::string_view stop_name) const;
-    // Этот метод будет нужен в следующей части итогового проекта
-    svg::Document RenderMap() const;
+        // Возврашает список автобусов по остановке
+        const std::set<std::string> GetBusesByStop(std::string_view stop_name) const;
+        // Возвращает наиболее оптимальный маршрут от остановки
+        const std::optional<graph::Router<double>::RouteInfo> GetRoute(const tc::Stop* stop_from, const tc::Stop* stop_to) const;
+        const graph::DirectedWeightedGraph<double>& GetRouterGraph() const;
+        svg::Document RenderMap() const;
 
-private:
-    
-    // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
-    const tc::TransportCatalogue& catalogue_;
-    const renderer::MapRenderer& renderer_;
+    private:
+
+        // RequestHandler использует агрегацию объектов "Транспортный Справочник", "Визуализатор Карты" и "Транспортный роутер"
+        const tc::TransportCatalogue& catalogue_;
+        const renderer::MapRenderer& renderer_;
+        const tc::TransportRouter& router_;
 };

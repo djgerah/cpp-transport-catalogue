@@ -1,5 +1,6 @@
-#include "transport_catalogue.h"
 #include <stdexcept>
+
+#include "transport_catalogue.h"
 
 namespace tc 
 {
@@ -23,7 +24,7 @@ namespace tc
     }
 
     void TransportCatalogue::AddBus(tc::Bus bus)
-    {   
+    {           
         buses_.push_back(bus);
         busname_to_bus_[buses_.back().number] = &buses_.back();
 
@@ -31,7 +32,7 @@ namespace tc
         {
             for (auto& stop : stops_) 
             {
-                if (stop.name == bus_stop->name)
+                if (stop.name == bus_stop->name) 
                 {
                     stop.buses.insert(bus.number);
                 }
@@ -52,7 +53,7 @@ namespace tc
         }
     }
 
-    std::unordered_set<const Stop*, Hasher> TransportCatalogue::GetUniqStops(std::string_view bus_number) const
+    std::unordered_set<const Stop*, Hasher> TransportCatalogue::GetUniqueStops(std::string_view bus_number) const
     {
         std::unordered_set<const Stop*, Hasher> unique_stops;
         
@@ -67,6 +68,18 @@ namespace tc
         return unique_stops;
     }
 
+    const std::map<std::string_view, const Stop*> TransportCatalogue::GetAllStops() const 
+    {
+        std::map<std::string_view, const Stop*> all_stops;
+
+        for (const auto& stop : stopname_to_stop_) 
+        {
+            all_stops.emplace(stop);
+        }
+        
+        return all_stops;
+    }
+
     const std::map<std::string_view, const Bus*> TransportCatalogue::GetAllBuses() const 
     {
         std::map<std::string_view, const Bus*> all_buses;
@@ -75,7 +88,7 @@ namespace tc
         {
             all_buses.emplace(bus);
         }
-        
+
         return all_buses;
     }
 
@@ -130,7 +143,7 @@ namespace tc
 
     std::optional<tc::BusStat> TransportCatalogue::GetBusStat(const std::string_view bus_number) const 
     {
-        tc::BusStat bus_stat;
+        tc::BusStat bus_stat = {};
         const tc::Bus* bus = GetBus(bus_number);
 
         if (!bus)
@@ -149,10 +162,10 @@ namespace tc
         }
 
         auto distance = GetRouteLength(bus);
-        bus_stat.unique_stops = GetUniqStops(bus_number).size();
+        bus_stat.unique_stops = GetUniqueStops(bus_number).size();
         bus_stat.route_length = distance.first;
         bus_stat.curvature = distance.first / distance.second;
 
         return bus_stat;
     }
-} // end namespace tc
+}  // end namespace tc
