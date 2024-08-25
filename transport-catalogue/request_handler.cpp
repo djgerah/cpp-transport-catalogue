@@ -13,12 +13,12 @@ using namespace std::literals;
         return router_.GetRoute(stop_from, stop_to);
     }
 
-    const graph::DirectedWeightedGraph<double>& RequestHandler::GetRouterGraph() const 
+    const graph::DirectedWeightedGraph<double>& RequestHandler::GetGraph() const 
     {
-        return router_.GetGraph();
+        return router_.GetRouteGraph();
     }
 
-    svg::Document RequestHandler::RenderMap() const 
+    svg::Document RequestHandler::RenderMap() const                                             
     {
         return renderer_.GetSVG(catalogue_.GetAllBuses());
     }

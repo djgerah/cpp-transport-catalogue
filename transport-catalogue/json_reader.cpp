@@ -380,7 +380,7 @@ namespace json_reader
 
             for (auto& id : route.value().edges) 
             {
-                const graph::Edge<double> edge = request_handler.GetRouterGraph().GetEdge(id);
+                const graph::Edge<double> edge = request_handler.GetGraph().GetEdge(id);
 
                 if (edge.span_count == 0) 
                 {

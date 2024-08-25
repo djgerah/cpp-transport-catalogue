@@ -7,10 +7,12 @@
 #include <optional>
 #include <stdexcept>
 #include <unordered_map>
+#include <map>
 #include <utility>
 #include <vector>
 
 #include "graph.h"
+#include "domain.h"
 
 /*
     Маршрутизатор — класс Router — класс, реализующий поиск кратчайшего пути во взвешенном ориентированном графе.
@@ -31,7 +33,19 @@ namespace graph
 
             // Конструктор маршрутизатора имеет сложность 
             // 𝑂(𝑉3+𝐸)O(V 3+E), где 𝑉 — количество вершин графа, 𝐸 — количество рёбер.
-            explicit Router(const Graph& graph);
+            Router(const Graph& graph)
+                : graph_(graph)
+                , routes_internal_data_(graph.GetVertexCount(), std::vector<std::optional<RouteInternalData>>(graph.GetVertexCount()))
+                {
+                    InitializeRoutesInternalData(graph);
+
+                    const size_t vertex_count = graph.GetVertexCount();
+                    
+                    for (VertexId vertex_through = 0; vertex_through < vertex_count; ++vertex_through) 
+                    {
+                        RelaxRoutesInternalDataThroughVertex(vertex_count, vertex_through);
+                    }
+                }
 
             struct RouteInfo 
             {
@@ -42,6 +56,9 @@ namespace graph
             // Построение маршрута на готовом маршрутизаторе линейно относительно количества рёбер в маршруте. 
             // Таким образом, основная нагрузка построения оптимальных путей ложится на конструктор.
             std::optional<RouteInfo> BuildRoute(VertexId from, VertexId to) const;
+            void SetVertexId(std::map<const tc::Stop*, graph::VertexId> stop_to_vertex_id);
+            graph::VertexId GetVertexId(const tc::Stop* stop);
+            const graph::DirectedWeightedGraph<double>& GetGraph() const;
 
         private:
 
@@ -109,22 +126,26 @@ namespace graph
             static constexpr Weight ZERO_WEIGHT{};
             const Graph& graph_;
             RoutesInternalData routes_internal_data_;
+			std::map<const tc::Stop*, graph::VertexId> stop_to_vertex_id_ = {};
     };
 
     template <typename Weight>
-    Router<Weight>::Router(const Graph& graph)
-        : graph_(graph)
-        , routes_internal_data_(graph.GetVertexCount(), std::vector<std::optional<RouteInternalData>>(graph.GetVertexCount()))
-        {
-            InitializeRoutesInternalData(graph);
+    void Router<Weight>::SetVertexId(std::map<const tc::Stop*, graph::VertexId> stop_to_vertex_id)
+    {
+        stop_to_vertex_id_ = stop_to_vertex_id;
+    }
 
-            const size_t vertex_count = graph.GetVertexCount();
-            
-            for (VertexId vertex_through = 0; vertex_through < vertex_count; ++vertex_through) 
-            {
-                RelaxRoutesInternalDataThroughVertex(vertex_count, vertex_through);
-            }
-        }
+    template <typename Weight>
+    graph::VertexId Router<Weight>::GetVertexId(const tc::Stop* stop)
+    {
+        return stop_to_vertex_id_.at(stop);
+    }
+    
+    template <typename Weight>
+    const graph::DirectedWeightedGraph<double>& Router<Weight>::GetGraph() const 
+    { 
+        return graph_;
+    }
 
     template <typename Weight>
     std::optional<typename Router<Weight>::RouteInfo> Router<Weight>::BuildRoute(VertexId from, VertexId to) const 

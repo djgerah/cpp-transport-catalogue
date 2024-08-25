@@ -1,6 +1,5 @@
 {
   "explorer.confirmDelete": false,
   "debug.onTaskErrors": "abort",
-  "C_Cpp.intelliSenseEngine": "disabled",
-  "workbench.editor.enablePreview": true
+  "C_Cpp.intelliSenseEngine": "disabled"
 }

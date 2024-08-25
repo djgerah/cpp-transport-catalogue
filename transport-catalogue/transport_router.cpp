@@ -1,24 +1,23 @@
 #include "transport_router.h"
 
+const double TIME = 6.00;
+const int MULTIPLIER = 100;
+
 namespace tc 
 {
-    graph::DirectedWeightedGraph<double> tc::TransportRouter::AddStopEdge(const TransportCatalogue& catalogue, graph::DirectedWeightedGraph<double> graph_to_build) 
+    void tc::TransportRouter::AddEdgesGraph(const TransportCatalogue& catalogue)
     {
         graph::VertexId vertex_id = 0;
-
+        std::map<const tc::Stop*, graph::VertexId> stop_to_vertex_id_ = {};
+        
         for (const auto& [stop_name, stop_ptr] : catalogue.GetAllStops()) 
         {
             stop_to_vertex_id_[stop_ptr] = vertex_id;
-            graph_to_build.AddEdge({ stop_ptr->name, 0,vertex_id, ++vertex_id, static_cast<double>(routing_settings_.bus_wait_time_) });
+            graph_.AddEdge({ stop_ptr->name, 0,vertex_id, ++vertex_id, static_cast<double>(routing_settings_.bus_wait_time_) });
             
             ++vertex_id;
         }
 
-        return graph_to_build;
-    }
-
-    graph::DirectedWeightedGraph<double> tc::TransportRouter::AddBusEdge(const TransportCatalogue& catalogue, graph::DirectedWeightedGraph<double> graph_to_build)
-    {
         for (auto& [name, bus_ptr] : catalogue.GetAllBuses())
         {
 
@@ -43,19 +42,19 @@ namespace tc
                     const Stop* to = bus_ptr->stops[j];
 
                     // Добавляем ребро "Остановка А - "Остановка B" для каждого маршрута
-                    graph_to_build.AddEdge({ bus_ptr->number, span_count,
+                    graph_.AddEdge({ bus_ptr->number, span_count,
                                             stop_to_vertex_id_.at(from) + 1, stop_to_vertex_id_.at(to),
                                             // Разделив расстояние на среднюю скорость движения (скорость / время * 100), 
                                             // получаем время за которое было преодалено это расстояние
-                                            A_to_B / (routing_settings_.bus_velocity_ / 6 * 100)
+                                            A_to_B / (routing_settings_.bus_velocity_ / TIME * MULTIPLIER)
                                             });
                     
                     // Если маршрут некольцевой - так же добавляем ребро "Остановка B - Остановка A"
                     if (!bus_ptr->is_roundtrip) 
                     {
-                        graph_to_build.AddEdge({ bus_ptr->number, span_count, 
+                        graph_.AddEdge({ bus_ptr->number, span_count, 
                                                 stop_to_vertex_id_.at(to) + 1, stop_to_vertex_id_.at(from),
-                                                B_to_A / (routing_settings_.bus_velocity_ / 6 * 100)
+                                                B_to_A / (routing_settings_.bus_velocity_ / TIME * MULTIPLIER)
                                                 });
                     }
                     
@@ -63,24 +62,24 @@ namespace tc
                 }
             }
         }
-
-        return graph_to_build;
+        
+       	router_ = std::make_unique<graph::Router<double>>(graph_);
+        router_->SetVertexId(stop_to_vertex_id_);
     } 
 
-    graph::DirectedWeightedGraph<double> tc::TransportRouter::BuildGraph(const TransportCatalogue& catalogue) 
+    void tc::TransportRouter::BuildGraph(const TransportCatalogue& catalogue) 
     {
-       graph::DirectedWeightedGraph<double> graph_to_build(catalogue.GetAllStops().size() * 2);
-       
-       return AddBusEdge(catalogue, AddStopEdge(catalogue, graph_to_build));
+        graph_ = graph::DirectedWeightedGraph<double> (catalogue.GetAllStops().size() * 2);
+        AddEdgesGraph(catalogue);
     }
 
     const std::optional<graph::Router<double>::RouteInfo> TransportRouter::GetRoute(const tc::Stop* from, const tc::Stop* to) const 
     {
-        return router_->BuildRoute(stop_to_vertex_id_.at(from), stop_to_vertex_id_.at(to));
+        return router_->BuildRoute(router_->GetVertexId(from), router_->GetVertexId(to));
     }
 
-    const graph::DirectedWeightedGraph<double>& TransportRouter::GetGraph() const 
+    const graph::DirectedWeightedGraph<double>& TransportRouter::GetRouteGraph() const 
     {
-        return graph_;
+        return router_->GetGraph();
     }
 } // end namespace tc

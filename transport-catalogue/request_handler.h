@@ -22,7 +22,7 @@ class RequestHandler
         const std::set<std::string> GetBusesByStop(std::string_view stop_name) const;
         // Возвращает наиболее оптимальный маршрут от остановки
         const std::optional<graph::Router<double>::RouteInfo> GetRoute(const tc::Stop* stop_from, const tc::Stop* stop_to) const;
-        const graph::DirectedWeightedGraph<double>& GetRouterGraph() const;
+        const graph::DirectedWeightedGraph<double>& GetGraph() const;
         svg::Document RenderMap() const;
 
     private:
